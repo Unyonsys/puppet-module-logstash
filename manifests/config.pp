@@ -62,8 +62,10 @@ class logstash::config( $logstash_home = '/usr/local/logstash',
   }
 
   file { "$logstash_log":
-    ensure   => 'directory',
-    recurse  => true,
+    ensure  => 'directory',
+    recurse => true,
+    owner   => $logstash_user,
+    group   => $logstash_group,
   }
 
   # make sure we have a logstash jar (& dependencies, if we want)
@@ -74,9 +76,21 @@ class logstash::config( $logstash_home = '/usr/local/logstash',
     java_package      => $java_package,
   }
 
-  # create the service user & group if required
-  class { 'logstash::user':
-    logstash_homeroot => $logstash::config::logstash_home
+  @user { $logstash::config::user:
+    ensure     => present,
+    managehome => true,
+    shell      => '/bin/false',
+    system     => true,
+    comment    => 'logstash system account',
+    tag        => 'logstash',
+    uid        => '3300',
+    gid        => '3300',
+    home       => $logstash_homeroot,
+  }
+
+  @group { $logstash::config::group:
+    ensure => present,
+    gid    => '3300',
+    tag    => 'logstash',
   }
 }
-

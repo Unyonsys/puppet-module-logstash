@@ -23,7 +23,7 @@
 class logstash::shipper (
   $logstash_server ='localhost',
   $verbose = 'no',
-  $jarname ='logstash-1.1.0-monolithic.jar',
+  $jarname = "logstash-$logstash::config::logstash_version-monolithic.jar",
   # TODO This needs refactoring :)
   $logfiles = '"/var/log/messages", "/var/log/syslog", "/var/log/*.log"'
 ) {
@@ -67,6 +67,14 @@ class logstash::shipper (
     servicejar     => $logstash::package::jar,
     serviceargs    => " agent -f /etc/logstash/shipper.conf -l $logstash::config::logstash_log/shipper.log",
     java_home      => $logstash::config::java_home,
+    require	   => File['/etc/logstash/shipper.conf'],
+  }
+  
+  # directory of grok patterns
+  file { '/etc/logstash/grok.d':
+    ensure => directory,
+    recurse => remote,
+    source => 'puppet:///modules/logstash/grok.d/',
   }
 
   service { 'logstash-shipper':

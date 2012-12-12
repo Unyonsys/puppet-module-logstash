@@ -21,9 +21,9 @@
 # * Update documentation
 #
 class logstash::shipper (
-  $logstash_server ='localhost',
+  $server ='localhost',
   $verbose = 'no',
-  $jarname = "logstash-$logstash::config::logstash_version-monolithic.jar",
+  $jarname = "logstash-$logstash::config::version-monolithic.jar",
   # TODO This needs refactoring :)
   $logfiles = '"/var/log/messages", "/var/log/syslog", "/var/log/*.log"'
 ) {
@@ -33,7 +33,7 @@ class logstash::shipper (
   Class['logstash::package'] -> Class['logstash::shipper']
 
   # create the config file based on the transport we are using (this could also be extended to use different configs)
-  case  $logstash::config::logstash_transport {
+  case  $logstash::config::transport {
     /^redis$/: { $shipper_conf_content = template('logstash/shipper-input.conf.erb',
                                                   'logstash/shipper-filter.conf.erb',
                                                   'logstash/shipper-output-redis.conf.erb') }
@@ -62,10 +62,10 @@ class logstash::shipper (
   logstash::javainitscript { 'logstash-shipper':
     serviceuser    => 'root',
     servicegroup   => 'root',
-    servicehome    => $logstash::config::logstash_home,
-    servicelogfile => "$logstash::config::logstash_log/shipper.log",
+    servicehome    => $logstash::config::home,
+    servicelogfile => "$logstash::config::log/shipper.log",
     servicejar     => $logstash::package::jar,
-    serviceargs    => " agent -f /etc/logstash/shipper.conf -l $logstash::config::logstash_log/shipper.log",
+    serviceargs    => " agent -f /etc/logstash/shipper.conf -l $logstash::config::log/shipper.log",
     java_home      => $logstash::config::java_home,
     require	   => File['/etc/logstash/shipper.conf'],
   }

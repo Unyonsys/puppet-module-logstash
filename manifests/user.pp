@@ -1,11 +1,25 @@
 # Class: logstash::user
 #
-# logstash_homeroot must be passed.
-class logstash::user (
-  $logstash_homeroot = undef
-) {
+class logstash::user {
+  Class['logstash::user'] -> Class['logstash::indexer::config']
 
-  # make sure the logstash::config class is declared before logstash::user
-  Class['logstash::config'] -> Class['logstash::user']
-
+  file { $logstash::home:
+    ensure => 'directory',
+    owner  => $logstash::variables::user,
+    group  => $logstash::variables::group,
+  }
+  user { $logstash::variables::user:
+    ensure     => present,
+    managehome => true,
+    shell      => $logstash::variables::shell,
+    system     => true,
+    comment    => 'logstash system account',
+    uid        => $logstash::uid,
+    gid        => $logstash::gid,
+    home       => $logstash::home,
+  }
+  group { $logstash::variables::group:
+    ensure => present,
+    gid    => $logstash::gid
+  }
 }

@@ -1,16 +1,14 @@
 # templated java daemon script
 define logstash::javainitscript (
-  $servicename = $title,
+  $servicename,
   $serviceuser,
-  $servicegroup = $serviceuser,
+  $servicegroup,
   $servicehome,
-  $serviceuserhome = $servicehome,
   $servicelogfile,
   $servicejar,
   $serviceargs,
-  $java_home = '/usr/lib/jvm/jre-1.6.0-openjdk.x86_64'
+  $java_home,
 ) {
-
   file { "/etc/init.d/${servicename}":
     ensure  => present,
     owner   => root,

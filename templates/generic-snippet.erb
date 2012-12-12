@@ -1,0 +1,6 @@
+<%= plugin_type %> {
+  <%= plugin %> {<% data.each do |key, val| %>
+    <%= key %>  => <% if ( val.to_s.include?("[") ) or ( val == 'true' ) or ( val == 'false' ) then%><%= val -%><% else -%>"<%= val -%>"<% end -%>
+  <% end %>
+  }
+}

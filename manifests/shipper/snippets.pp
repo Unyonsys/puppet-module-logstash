@@ -5,7 +5,7 @@ class logstash::shipper::snippets {
     plugin      => 'file',
     data        => {
       type      => 'syslog',
-      path      => '[ "/var/log/messages", "/var/log/syslog", "/var/log/*.log" ]',
+      path      => '[ "/var/log/syslog", "/var/log/auth.log", "/var/log/cron.log", "/var/log/messages", "/var/log/secure", "/var/log/cron" ]',
     }
   }
   @logstash::snippet { 'shipper_multiline':

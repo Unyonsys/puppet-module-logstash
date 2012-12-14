@@ -1,87 +1,64 @@
 #puppet-logstash#
 
-* Simple puppet logstash module, tries to take care of making sure redis &
-elasticsearch are available.
+This module started as a fork of simonmcc/puppet-logstash
+It was rewritten to make things modular, and allow to easily add config snippet without
+changing module templates
+
+I kept what I liked from the original module:
 * Supports grabbing logstash jar directly (jar's are packages right?  we just don't support them natively yet :-))
-* aimed at logstash-1.1 or newer, with simple redis setup
 * templated init scripts for all java daemons (based on work by Josh Davis/Christian d'Heureuse)
+
+The config is thinked as following:
+- the shipper is repsponsible for reading/sending events
+- the indexer process and index them
+- the web display them
 
 ##Usage##
 
-Declare a config class that is used by the working classes:
+This example is making use of puppet3 hiera autolookup.
 
-```puppet
-  # this example is enough for CentOS 5
-  class { 'logstash::config':
-    logstash_home => '/opt/logstash',
-    logstash_jar_provider => 'http',
-    logstash_transport => 'redis',
-    redis_provider     => 'package',
-    elasticsearch_provider => 'embedded',
+```manifest
+include logstash
+```
+
+```hiera
+logstash::shipper: true
+logstash::indexer: true
+logstash::web: true
+```
+The logstash::snippet define is usefull to add config elements.
+Some "standard" ones are predefined and included by default. This is parameterized.
+
+Want to add a new file to read:
+
+```logstash::snippet { 'shipper_myfile':
+    component   => 'shipper',
+    plugin_type => 'input',
+    plugin      => 'file',
+    data        => {
+      type      => 'syslog',
+      path      => '[ "/var/log/myfile" ]',
+    }
   }
-  # there is a redis RPM here:
-  yumrepo { 'yum.mccartney.ie':
-    baseurl  => 'http://yum.mccartney.ie',
-    descr    => 'redis for el',
-    gpgcheck => 0,
-  }
-```
-Then just apply the required classes to each node:
-```puppet
-  # indexer/storage node
-  class { 'logstash::indexer': }
-  # use this class to provide transport that matches what we want, optional
-  class { 'logstash::redis': }
-  
-  # straight log shipper only
-  class { 'logstash::shipper': }
-
-  # web interface
-  class { 'logstash::web': }
 ```
 
+#Extra info#
+I was wondering how file read is handled exactly, so here is the "official" response from logstash author:
 
-###Sample config for Ubuntu Precise (12.04)
-```puppet
-class { 'logstash::config':
-  logstash_home          => '/opt/logstash',
-  logstash_jar_provider  => 'http',             # pull down the jar over http
-  logstash_transport     => 'redis',            # configure redis as the transport
-  redis_provider         => 'package',          # install redis from native package please
-  redis_package          => 'redis-server',     # package name for this platform
-  redis_version          => '',                 # package-version doesn't work with apt/deb
-  elasticsearch_provider => 'embedded',         # we'll run ES inside out logstash JVM
-  java_provider          => 'package',          # install java for me please, from a package
-  java_package           => 'openjdk-6-jdk',    # package name on this platform
-  java_home              => '/usr/lib/jvm/java-6-openjdk-amd64',
-                                                # JAVA_HOME for your chosen JDK
-}
-```
+Files are followed in a way similar to "tail -0F" for 'files new to logstash'. If a file is known (say, if logstash is restarted), logstash will start at the last position in each file it know about and continue reading.
 
-###Sample config for Debian Squeeze (6)
-```puppet
-class { 'logstash::config':
-  logstash_home          => '/opt/logstash',
-  logstash_jar_provider  => 'http',
-  logstash_transport     => 'redis',
-  redis_provider         => 'external',		# Debian 6 ships with redis-server-1.2.6, 
-						# which doesn't support BLPOP, so you'll have 
-						# provide your own redis-server
-  elasticsearch_provider => 'embedded',         # we'll run ES inside out logstash JVM
-  java_provider          => 'package',          # install java for me please, from a package
-  java_package           => 'openjdk-6-jdk',    # package name on this platform
-  java_home              => '/usr/lib/jvm/java-6-openjdk',
-                                                # JAVA_HOME for your chosen JDK
-}
-```
-##Configuration Detail##
+In general, the flow is like this:
 
-Many of the configuration defaults come from the original behaviour of Kris Buytaert's original module, which this started out as a fork of.
+* if a new file is found, start following at the end of the file.
+* logstash always keeps track of the position in the file.
+* if an old file is found (with a known position), it will resume at that position, unless the file has been truncated prior and at which case logstash will begin reading at the start of the file
 
+The goal is to never lose events.
 
+-Jordan
 
 #Credit#
-Based on lots of original work by Kris Buytaert & Joe McDonagh 
+Based on lots of original work by Kris Buytaert & Joe McDonagh
 https://github.com/KrisBuytaert/puppet-logstash
 https://github.com/thesilentpenguin/puppet-logstash
-
+https://github.com/simonmcc/puppet-logstash
